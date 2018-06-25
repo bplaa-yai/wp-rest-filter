@@ -16,9 +16,25 @@ add_action( 'rest_api_init', 'wp_rest_filter_add_filters' );
 function wp_rest_filter_add_filters() {
 	foreach ( get_post_types( array( 'show_in_rest' => true ), 'objects' ) as $post_type ) {
 		add_filter( 'rest_' . $post_type->name . '_query', 'wp_rest_filter_add_filter_param', 10, 2 );
+		add_action( 'rest_insert_' . $post_type->name, function( $post, $request, $flag ) {
+            $post_meta = $request->get_json_params()['meta'] ?? [];
+            foreach( $post_meta as $meta_key => $meta_value ){
+                update_post_meta( $post->ID, $meta_key, $meta_value );
+            }
+            $terms_params = $request->get_json_params()['terms'] ?? [];
+            foreach( $terms_params as $taxonomy => $terms ){
+                wp_set_post_terms( $post->ID, $terms, $taxonomy );
+            }
+		}, 20, 3 );
 	}
 	foreach ( get_taxonomies( array( 'show_in_rest' => true ), 'objects' ) as $tax_type ) {
 		add_filter( 'rest_' . $tax_type->name . '_query', 'wp_rest_filter_add_filter_param', 10, 2 );
+		add_action( 'rest_insert_' . $tax_type->name, function( $term, $request, $flag ) {
+            $term_meta = $request->get_json_params()['meta'] ?? [];
+            foreach( $term_meta as $meta_key => $meta_value ){
+                update_term_meta( $term->term_id, $meta_key, $meta_value );
+            }
+		}, 20, 3 );
 	}
 }
 
